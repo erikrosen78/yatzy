@@ -21,12 +21,15 @@ const LOWER_CATEGORIES = [
 
 const MAX_ROLLS = 3;
 const NUM_DICE = 5;
+const HIGHSCORE_KEY = "yatzy.highscores";
+const MAX_HIGHSCORES = 10;
 
 let dice = Array(NUM_DICE).fill(1);
 let held = Array(NUM_DICE).fill(false);
 let rollsLeft = MAX_ROLLS;
 let hasRolled = false;
 let scores = {};
+let lastSavedId = null;
 
 const diceRowEl = document.getElementById("dice-row");
 const rollBtn = document.getElementById("roll-btn");
@@ -39,6 +42,11 @@ const grandTotalEl = document.getElementById("grand-total");
 const gameOverEl = document.getElementById("game-over");
 const finalScoreEl = document.getElementById("final-score");
 const newGameBtn = document.getElementById("new-game-btn");
+const saveScoreForm = document.getElementById("save-score-form");
+const playerNameInput = document.getElementById("player-name");
+const highscoreListEl = document.getElementById("highscore-list");
+const noScoresEl = document.getElementById("no-scores");
+const clearScoresBtn = document.getElementById("clear-scores-btn");
 
 const PIP_LAYOUT = {
   1: [4],
@@ -257,9 +265,117 @@ function endGame() {
   gameOverEl.classList.remove("hidden");
   finalScoreEl.textContent = grandTotalEl.textContent;
   rollBtn.disabled = true;
+  saveScoreForm.classList.remove("hidden");
+  playerNameInput.value = loadLastPlayerName();
+  playerNameInput.focus();
 }
+
+function loadHighscores() {
+  try {
+    const raw = localStorage.getItem(HIGHSCORE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((e) => e && typeof e.name === "string" && Number.isFinite(e.score))
+      .map((e) => ({ id: e.id, name: e.name, score: e.score, date: e.date }));
+  } catch {
+    return [];
+  }
+}
+
+function saveHighscores(entries) {
+  try {
+    localStorage.setItem(HIGHSCORE_KEY, JSON.stringify(entries));
+  } catch {
+    // Storage may be unavailable (private mode / quota); the game still works.
+  }
+}
+
+function loadLastPlayerName() {
+  try {
+    return localStorage.getItem("yatzy.lastName") || "";
+  } catch {
+    return "";
+  }
+}
+
+function addHighscore(name, score) {
+  const entry = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name: name.slice(0, 20),
+    score,
+    date: new Date().toISOString(),
+  };
+  const entries = loadHighscores();
+  entries.push(entry);
+  entries.sort((a, b) => b.score - a.score || (a.date < b.date ? -1 : 1));
+  saveHighscores(entries.slice(0, MAX_HIGHSCORES));
+
+  try {
+    localStorage.setItem("yatzy.lastName", entry.name);
+  } catch {
+    // Ignore storage failures.
+  }
+
+  lastSavedId = entry.id;
+  renderHighscores();
+}
+
+function renderHighscores() {
+  const entries = loadHighscores();
+  highscoreListEl.innerHTML = "";
+  noScoresEl.classList.toggle("hidden", entries.length > 0);
+  clearScoresBtn.classList.toggle("hidden", entries.length === 0);
+
+  entries.forEach((entry) => {
+    const li = document.createElement("li");
+    if (entry.id === lastSavedId) li.classList.add("latest");
+
+    const row = document.createElement("div");
+    row.className = "highscore-entry";
+
+    const name = document.createElement("span");
+    name.className = "highscore-name";
+    name.textContent = entry.name;
+
+    const date = document.createElement("span");
+    date.className = "highscore-date";
+    date.textContent = formatDate(entry.date);
+
+    const score = document.createElement("strong");
+    score.textContent = entry.score;
+
+    row.append(name, date, score);
+    li.appendChild(row);
+    highscoreListEl.appendChild(li);
+  });
+}
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? ""
+    : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+saveScoreForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const name = playerNameInput.value.trim();
+  if (!name) return;
+  addHighscore(name, Number(grandTotalEl.textContent));
+  saveScoreForm.classList.add("hidden");
+});
+
+clearScoresBtn.addEventListener("click", () => {
+  if (!confirm("Delete all saved high scores?")) return;
+  saveHighscores([]);
+  lastSavedId = null;
+  renderHighscores();
+});
 
 rollBtn.addEventListener("click", rollDice);
 newGameBtn.addEventListener("click", init);
 
+renderHighscores();
 init();

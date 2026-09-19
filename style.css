@@ -203,6 +203,111 @@ button:disabled {
   display: none;
 }
 
+.save-score {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 12px 0;
+}
+
+.save-score input {
+  flex: 1;
+  max-width: 200px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid #4b5563;
+  background: #111827;
+  color: #f3f4f6;
+  font-size: 14px;
+}
+
+.save-score input:focus {
+  outline: 2px solid #60a5fa;
+  outline-offset: 1px;
+}
+
+.highscores {
+  margin-top: 20px;
+  background: #1f2937;
+  padding: 16px 20px;
+  border-radius: 12px;
+  text-align: left;
+}
+
+.highscores-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.highscores h2 {
+  font-size: 16px;
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+.link-btn {
+  background: none;
+  color: #9ca3af;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+
+.link-btn:hover:not(:disabled) {
+  background: none;
+  color: #f87171;
+  text-decoration: underline;
+}
+
+.highscore-list {
+  margin: 0;
+  padding-left: 22px;
+  font-size: 14px;
+}
+
+.highscore-list li {
+  padding: 4px 0;
+  border-bottom: 1px solid #374151;
+}
+
+.highscore-list li:last-child {
+  border-bottom: none;
+}
+
+.highscore-list li.latest {
+  color: #facc15;
+  font-weight: 600;
+}
+
+.highscore-entry {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.highscore-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.highscore-date {
+  color: #6b7280;
+  font-size: 11px;
+  margin-left: auto;
+  padding-right: 10px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .hidden {
   display: none;
 }

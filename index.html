@@ -51,8 +51,31 @@
 
       <div id="game-over" class="game-over hidden">
         <p>Game over! Final score: <span id="final-score">0</span></p>
+
+        <form id="save-score-form" class="save-score">
+          <label for="player-name" class="visually-hidden">Your name</label>
+          <input
+            type="text"
+            id="player-name"
+            placeholder="Your name"
+            maxlength="20"
+            autocomplete="off"
+            required
+          />
+          <button type="submit">Save score</button>
+        </form>
+
         <button id="new-game-btn" type="button">New Game</button>
       </div>
+
+      <section class="highscores">
+        <div class="highscores-header">
+          <h2>High Scores</h2>
+          <button id="clear-scores-btn" type="button" class="link-btn">Clear</button>
+        </div>
+        <ol id="highscore-list" class="highscore-list"></ol>
+        <p id="no-scores" class="hint">No scores yet — finish a game to get on the board.</p>
+      </section>
     </main>
 
     <script src="script.js"></script>
