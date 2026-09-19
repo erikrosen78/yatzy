@@ -143,6 +143,7 @@ function init() {
   buildScorecard();
   renderDice();
   updateControls();
+  updateAvailableScores();
   updateTotals();
 }
 
