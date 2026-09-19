@@ -62,8 +62,9 @@
             autocomplete="off"
             required
           />
-          <button type="submit">Save score</button>
+          <button type="submit" id="save-score-btn">Save score</button>
         </form>
+        <p id="save-status" class="save-status" aria-live="polite"></p>
 
         <button id="new-game-btn" type="button">New Game</button>
       </div>
@@ -71,13 +72,14 @@
       <section class="highscores">
         <div class="highscores-header">
           <h2>High Scores</h2>
-          <button id="clear-scores-btn" type="button" class="link-btn">Clear</button>
+          <span id="scope-label" class="scope-label"></span>
         </div>
         <ol id="highscore-list" class="highscore-list"></ol>
-        <p id="no-scores" class="hint">No scores yet — finish a game to get on the board.</p>
+        <p id="scores-status" class="hint">Loading scores…</p>
       </section>
     </main>
 
+    <script src="config.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

@@ -22,7 +22,7 @@ const LOWER_CATEGORIES = [
 const MAX_ROLLS = 3;
 const NUM_DICE = 5;
 const HIGHSCORE_KEY = "yatzy.highscores";
-const MAX_HIGHSCORES = 10;
+const MAX_HIGHSCORES = 20;
 
 let dice = Array(NUM_DICE).fill(1);
 let held = Array(NUM_DICE).fill(false);
@@ -43,10 +43,12 @@ const gameOverEl = document.getElementById("game-over");
 const finalScoreEl = document.getElementById("final-score");
 const newGameBtn = document.getElementById("new-game-btn");
 const saveScoreForm = document.getElementById("save-score-form");
+const saveScoreBtn = document.getElementById("save-score-btn");
+const saveStatusEl = document.getElementById("save-status");
 const playerNameInput = document.getElementById("player-name");
 const highscoreListEl = document.getElementById("highscore-list");
-const noScoresEl = document.getElementById("no-scores");
-const clearScoresBtn = document.getElementById("clear-scores-btn");
+const scoresStatusEl = document.getElementById("scores-status");
+const scopeLabelEl = document.getElementById("scope-label");
 
 const PIP_LAYOUT = {
   1: [4],
@@ -266,11 +268,67 @@ function endGame() {
   finalScoreEl.textContent = grandTotalEl.textContent;
   rollBtn.disabled = true;
   saveScoreForm.classList.remove("hidden");
+  saveStatusEl.textContent = "";
   playerNameInput.value = loadLastPlayerName();
   playerNameInput.focus();
 }
 
-function loadHighscores() {
+function loadLastPlayerName() {
+  try {
+    return localStorage.getItem("yatzy.lastName") || "";
+  } catch {
+    return "";
+  }
+}
+
+function rememberPlayerName(name) {
+  try {
+    localStorage.setItem("yatzy.lastName", name);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function isRemoteEnabled() {
+  const cfg = window.YATZY_CONFIG || {};
+  return Boolean(cfg.supabaseUrl && cfg.supabaseKey);
+}
+
+function supabaseHeaders() {
+  const { supabaseKey } = window.YATZY_CONFIG;
+  return {
+    apikey: supabaseKey,
+    Authorization: `Bearer ${supabaseKey}`,
+    "Content-Type": "application/json",
+  };
+}
+
+async function fetchRemoteScores() {
+  const { supabaseUrl } = window.YATZY_CONFIG;
+  const url =
+    `${supabaseUrl}/rest/v1/highscores` +
+    `?select=id,name,score,created_at&order=score.desc,created_at.asc&limit=${MAX_HIGHSCORES}`;
+  const res = await fetch(url, { headers: supabaseHeaders() });
+  if (!res.ok) throw new Error(`Could not load scores (${res.status})`);
+  const rows = await res.json();
+  return rows
+    .filter((r) => r && typeof r.name === "string" && Number.isFinite(r.score))
+    .map((r) => ({ id: r.id, name: r.name, score: r.score, date: r.created_at }));
+}
+
+async function submitRemoteScore(name, score) {
+  const { supabaseUrl } = window.YATZY_CONFIG;
+  const res = await fetch(`${supabaseUrl}/rest/v1/highscores`, {
+    method: "POST",
+    headers: { ...supabaseHeaders(), Prefer: "return=representation" },
+    body: JSON.stringify({ name, score }),
+  });
+  if (!res.ok) throw new Error(`Could not save score (${res.status})`);
+  const [row] = await res.json();
+  return row?.id ?? null;
+}
+
+function loadLocalScores() {
   try {
     const raw = localStorage.getItem(HIGHSCORE_KEY);
     if (!raw) return [];
@@ -284,7 +342,7 @@ function loadHighscores() {
   }
 }
 
-function saveHighscores(entries) {
+function saveLocalScores(entries) {
   try {
     localStorage.setItem(HIGHSCORE_KEY, JSON.stringify(entries));
   } catch {
@@ -292,45 +350,49 @@ function saveHighscores(entries) {
   }
 }
 
-function loadLastPlayerName() {
-  try {
-    return localStorage.getItem("yatzy.lastName") || "";
-  } catch {
-    return "";
-  }
-}
-
-function addHighscore(name, score) {
+function addLocalScore(name, score) {
   const entry = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    name: name.slice(0, 20),
+    name,
     score,
     date: new Date().toISOString(),
   };
-  const entries = loadHighscores();
+  const entries = loadLocalScores();
   entries.push(entry);
   entries.sort((a, b) => b.score - a.score || (a.date < b.date ? -1 : 1));
-  saveHighscores(entries.slice(0, MAX_HIGHSCORES));
-
-  try {
-    localStorage.setItem("yatzy.lastName", entry.name);
-  } catch {
-    // Ignore storage failures.
-  }
-
-  lastSavedId = entry.id;
-  renderHighscores();
+  saveLocalScores(entries.slice(0, MAX_HIGHSCORES));
+  return entry.id;
 }
 
-function renderHighscores() {
-  const entries = loadHighscores();
+async function refreshHighscores() {
+  if (!isRemoteEnabled()) {
+    renderHighscores(loadLocalScores(), "Saved on this device");
+    return;
+  }
+
+  scoresStatusEl.textContent = "Loading scores…";
+  scoresStatusEl.classList.remove("hidden");
+  try {
+    renderHighscores(await fetchRemoteScores(), "Shared with everyone");
+  } catch {
+    renderHighscores(loadLocalScores(), "Offline — showing this device");
+  }
+}
+
+function renderHighscores(entries, scopeText) {
+  scopeLabelEl.textContent = scopeText;
   highscoreListEl.innerHTML = "";
-  noScoresEl.classList.toggle("hidden", entries.length > 0);
-  clearScoresBtn.classList.toggle("hidden", entries.length === 0);
+
+  if (entries.length === 0) {
+    scoresStatusEl.textContent = "No scores yet — finish a game to get on the board.";
+    scoresStatusEl.classList.remove("hidden");
+    return;
+  }
+  scoresStatusEl.classList.add("hidden");
 
   entries.forEach((entry) => {
     const li = document.createElement("li");
-    if (entry.id === lastSavedId) li.classList.add("latest");
+    if (entry.id != null && entry.id === lastSavedId) li.classList.add("latest");
 
     const row = document.createElement("div");
     row.className = "highscore-entry";
@@ -359,23 +421,36 @@ function formatDate(iso) {
     : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-saveScoreForm.addEventListener("submit", (event) => {
+saveScoreForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const name = playerNameInput.value.trim();
+  const name = playerNameInput.value.trim().slice(0, 20);
   if (!name) return;
-  addHighscore(name, Number(grandTotalEl.textContent));
-  saveScoreForm.classList.add("hidden");
-});
 
-clearScoresBtn.addEventListener("click", () => {
-  if (!confirm("Delete all saved high scores?")) return;
-  saveHighscores([]);
-  lastSavedId = null;
-  renderHighscores();
+  const score = Number(grandTotalEl.textContent);
+  rememberPlayerName(name);
+  saveScoreBtn.disabled = true;
+  saveStatusEl.textContent = "Saving…";
+
+  try {
+    lastSavedId = isRemoteEnabled()
+      ? await submitRemoteScore(name, score)
+      : addLocalScore(name, score);
+    saveScoreForm.classList.add("hidden");
+    saveStatusEl.textContent = "Saved!";
+  } catch {
+    // Keep the score locally so it is not lost, and let the player retry.
+    lastSavedId = addLocalScore(name, score);
+    saveStatusEl.textContent = "Couldn't reach the leaderboard — saved on this device.";
+    saveScoreForm.classList.add("hidden");
+  } finally {
+    saveScoreBtn.disabled = false;
+  }
+
+  refreshHighscores();
 });
 
 rollBtn.addEventListener("click", rollDice);
 newGameBtn.addEventListener("click", init);
 
-renderHighscores();
+refreshHighscores();
 init();
