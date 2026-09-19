@@ -71,11 +71,17 @@
 
       <section class="highscores">
         <div class="highscores-header">
-          <h2>High Scores</h2>
+          <h2>High Score</h2>
           <span id="scope-label" class="scope-label"></span>
         </div>
-        <ol id="highscore-list" class="highscore-list"></ol>
-        <p id="scores-status" class="hint">Loading scores…</p>
+        <div id="champion" class="champion hidden">
+          <div id="champion-score" class="champion-score">0</div>
+          <div class="champion-meta">
+            <span id="champion-name" class="champion-name"></span>
+            <span id="champion-date" class="champion-date"></span>
+          </div>
+        </div>
+        <p id="scores-status" class="hint">Loading…</p>
       </section>
     </main>
 

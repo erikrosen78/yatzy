@@ -46,7 +46,10 @@ const saveScoreForm = document.getElementById("save-score-form");
 const saveScoreBtn = document.getElementById("save-score-btn");
 const saveStatusEl = document.getElementById("save-status");
 const playerNameInput = document.getElementById("player-name");
-const highscoreListEl = document.getElementById("highscore-list");
+const highscoreListEl = document.getElementById("champion");
+const championScoreEl = document.getElementById("champion-score");
+const championNameEl = document.getElementById("champion-name");
+const championDateEl = document.getElementById("champion-date");
 const scoresStatusEl = document.getElementById("scores-status");
 const scopeLabelEl = document.getElementById("scope-label");
 
@@ -308,7 +311,7 @@ async function fetchRemoteScores() {
   const { supabaseUrl } = window.YATZY_CONFIG;
   const url =
     `${supabaseUrl}/rest/v1/highscores` +
-    `?select=id,name,score,created_at&order=score.desc,created_at.asc&limit=${MAX_HIGHSCORES}`;
+    `?select=id,name,score,created_at&order=score.desc,created_at.asc&limit=1`;
   const res = await fetch(url, { headers: supabaseHeaders() });
   if (!res.ok) throw new Error(`Could not load scores (${res.status})`);
   const rows = await res.json();
@@ -337,7 +340,8 @@ function loadLocalScores() {
     if (!Array.isArray(parsed)) return [];
     return parsed
       .filter((e) => e && typeof e.name === "string" && Number.isFinite(e.score))
-      .map((e) => ({ id: e.id, name: e.name, score: e.score, date: e.date }));
+      .map((e) => ({ id: e.id, name: e.name, score: e.score, date: e.date }))
+      .sort((a, b) => b.score - a.score || (a.date < b.date ? -1 : 1));
   } catch {
     return [];
   }
@@ -382,37 +386,21 @@ async function refreshHighscores() {
 
 function renderHighscores(entries, scopeText) {
   scopeLabelEl.textContent = scopeText;
-  highscoreListEl.innerHTML = "";
+  const best = entries[0];
 
-  if (entries.length === 0) {
-    scoresStatusEl.textContent = "No scores yet — finish a game to get on the board.";
+  if (!best) {
+    highscoreListEl.classList.add("hidden");
+    scoresStatusEl.textContent = "No score yet — finish a game to set the record.";
     scoresStatusEl.classList.remove("hidden");
     return;
   }
+
+  championScoreEl.textContent = best.score;
+  championNameEl.textContent = best.name;
+  championDateEl.textContent = formatDate(best.date);
+  highscoreListEl.classList.toggle("latest", best.id != null && best.id === lastSavedId);
+  highscoreListEl.classList.remove("hidden");
   scoresStatusEl.classList.add("hidden");
-
-  entries.forEach((entry) => {
-    const li = document.createElement("li");
-    if (entry.id != null && entry.id === lastSavedId) li.classList.add("latest");
-
-    const row = document.createElement("div");
-    row.className = "highscore-entry";
-
-    const name = document.createElement("span");
-    name.className = "highscore-name";
-    name.textContent = entry.name;
-
-    const date = document.createElement("span");
-    date.className = "highscore-date";
-    date.textContent = formatDate(entry.date);
-
-    const score = document.createElement("strong");
-    score.textContent = entry.score;
-
-    row.append(name, date, score);
-    li.appendChild(row);
-    highscoreListEl.appendChild(li);
-  });
 }
 
 function formatDate(iso) {
