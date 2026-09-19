@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yatzy</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <h1>Yatzy</h1>
+
+      <div class="game">
+        <div class="dice-area">
+          <div class="dice-row" id="dice-row"></div>
+
+          <div class="controls">
+            <button id="roll-btn" type="button">Roll Dice</button>
+            <span id="rolls-left" class="rolls-left">3 rolls left</span>
+          </div>
+          <p class="hint">Click a die to hold it between rolls.</p>
+        </div>
+
+        <table class="scorecard">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody id="upper-section"></tbody>
+          <tbody>
+            <tr class="subtotal-row">
+              <td>Sum</td>
+              <td id="upper-sum">0</td>
+            </tr>
+            <tr class="subtotal-row">
+              <td>Bonus (if Sum &ge; 63: +50)</td>
+              <td id="bonus">0</td>
+            </tr>
+          </tbody>
+          <tbody id="lower-section"></tbody>
+          <tbody>
+            <tr class="total-row">
+              <td>Total</td>
+              <td id="grand-total">0</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="game-over" class="game-over hidden">
+        <p>Game over! Final score: <span id="final-score">0</span></p>
+        <button id="new-game-btn" type="button">New Game</button>
+      </div>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
